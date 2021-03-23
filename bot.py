@@ -1,14 +1,15 @@
   
 #Python libraries that we need to import for our bot
-import random
+import random, os
 from flask import Flask, request
 from pymessenger.bot import Bot
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = 'EAADzIkX32oYBAA5hlHkoJ4UJaI7eOPArd32sKSpFVLeZCdIZAdbbeTn6Cq2LJnAHZBkQAZBG0JJwJvX0QTYe8bBj7iebWGGwFLCVczgfoiQZCrg0beEs1ftTResFZBG3c46MfuCSizGoBiFj2nzOqDNBXk2848sZBEnj9B7YaLSiOTupjxw6ywPZCZB4WNkVrxRYZD'
-VERIFY_TOKEN = 'TESTINGTOKEN'
+ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
+VERIFY_TOKEN = os.environ['VERIFY_TOKEN']
+
 HORARIO_DESLIGAMENTO = 24
 ID_LIST = {'id': {'horario': datetime.now()}}
 
