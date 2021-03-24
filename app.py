@@ -45,11 +45,6 @@ def receive_message():
                     
                     
                     if(recipient_id not in ID_LIST):
-                        OUT = open("output.txt", 'w')
-                        OUT.write("CASO1\n")
-                        OUT.writelines(str(response_sent_text[1]) + '\n')
-                        OUT.writelines(str(recipient_id) + '\n')
-                        OUT.write(str(recipient_id not in ID_LIST) + '\n')
                         
                         if(response_sent_text[1] == 1):
                                 send_message(recipient_id, response_sent_text[0])
@@ -60,12 +55,7 @@ def receive_message():
                         #send_message(recipient_id, response_sent_text[0])
                         
                     else:
-                        
-                        OUT = open("output.txt", 'w')
-                        OUT.write("CASO2")
-                        OUT.write(str(response_sent_text[1]) + '\n')
-                        OUT.writelines(str(recipient_id) + '\n')
-                        OUT.write(str(recipient_id not in ID_LIST) + '\n')
+
                         
                         if(ID_LIST[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
                             
