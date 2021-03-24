@@ -1,16 +1,31 @@
   
 #Python libraries that we need to import for our bot
-import random, os
+import random, os, csv
+import pandas as pd
 from flask import Flask, request
 from pymessenger.bot import Bot
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
-VERIFY_TOKEN = os.environ['VERIFY_TOKEN']
+#ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
+#VERIFY_TOKEN = os.environ['VERIFY_TOKEN']
+
+ACCESS_TOKEN = 'EAADzIkX32oYBADPjMYhnky8mJGBSkjkMrIhnp1LJlCH87clxngeX0I0bunswYBP8gZAPWc6Unm2dSR1yULve7exKRsNI0pgZAotscdOsxObR6mEQVv55mpHbepb3qQpn0eJu83ZBVUN9fM4GvVgVflurQ0f8YccvtTTaZBvIAHa1IuZAlkCqZBCwFXOllZAk1gZD'
+VERIFY_TOKEN = 'TESTINGTOKEN'
 
 HORARIO_DESLIGAMENTO = 24
+
+try:
+    excluidos = pd.read_csv("excluidos.csv")
+    
+except:
+    column = ['id', 'horario']
+    data = [['1561515165', str(datetime.now().hour)]]  
+    
+    excluidos = pd.DataFrame(columns = column)
+    excluidos.to_csv('excluidos.csv', index=False)
+    
 ID_LIST = {'id': {'horario': datetime.now()}}
 
 
@@ -43,34 +58,9 @@ def receive_message():
                     #OUT = open("outputs.txt", 'w')
                     #OUT.writelines(str(message["message"]) + '\n')
                     
+                    list_id(recipient_id, response_sent_text, lista = ID_LIST)
                     
-                    if(recipient_id not in ID_LIST):
-                        
-                        if(response_sent_text[1] == 1):
-                                send_message(recipient_id, response_sent_text[0])
-                        else:
-                                ID_LIST[recipient_id] = {'horario' : datetime.now()}
-                                send_message(recipient_id, response_sent_text[0])
-                                
-                        #send_message(recipient_id, response_sent_text[0])
-                        
-                    else:
-
-                        
-                        if(ID_LIST[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
-                            
-                            if(response_sent_text[1] == 1):
-                                send_message(recipient_id, response_sent_text[0])
-                            else:
-                                send_message(recipient_id, response_sent_text[0])
-                                ID_LIST[recipient_id] = {'horario' : datetime.now()}
-                                
-                        if(response_sent_text[1] == 1):
-                                send_message(recipient_id, response_sent_text[0])
-                            
-                            
-                            
-                            
+                                   
                 #if user sends us a GIF, photo,video, or any other non-text item
                 if message['message'].get('attachments'):
                     response_sent_nontext = get_message()
@@ -116,18 +106,28 @@ def send_message(recipient_id, response):
     bot.send_text_message(recipient_id, response)
     return "success"
 
-def list_id(id, lista = ID_LIST):
+def list_id(recipient_id, response_sent_text, lista = ID_LIST):
 
-    r = True
-    for users in lista:
-        if(id == users['id']):
-            if(users['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
-                r = False
-                #lista[users]['horario'] = datetime.now() 
+    if(recipient_id not in ID_LIST):
+                        
+        if(response_sent_text[1] == 1):
+            send_message(recipient_id, response_sent_text[0])
         else:
-            r = False
-                
-    return r
+            ID_LIST[recipient_id] = {'horario' : datetime.now()}
+            send_message(recipient_id, response_sent_text[0])
+                        
+    else:
+
+        if(ID_LIST[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
+                            
+            if(response_sent_text[1] == 2):
+                send_message(recipient_id, response_sent_text[0])
+                ID_LIST[recipient_id] = {'horario' : datetime.now()}
+                                
+        if(response_sent_text[1] == 1):
+            send_message(recipient_id, response_sent_text[0])
+            
+    return ID_LIST
 
 if __name__ == "__main__":
     app.run()
