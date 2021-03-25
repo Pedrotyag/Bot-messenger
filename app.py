@@ -27,12 +27,12 @@ def receive_message():
     
     try:
         #excluidos = pd.read_csv("excluidos.csv")
-        CON = MySQLdb.connect(host="us-cdbr-east-03.cleardb.com", user="b8cd7b592349c7", passwd="67006c83", db="heroku_0c2e37b2ea952c5")
-        CURSOR = CON.cursor()
-        CURSOR.execute("SELECT * FROM excluidos")
+        con = MySQLdb.connect(host="us-cdbr-east-03.cleardb.com", user="b8cd7b592349c7", passwd="67006c83", db="heroku_0c2e37b2ea952c5")
+        cursor = con.cursor()
+        cursor.execute("SELECT * FROM excluidos")
         
         ID_LIST = {}
-        for linha in CURSOR.fetchall():
+        for linha in cursor.fetchall():
             ID_LIST['{}'.format(linha[0])] = {"horario":linha[1]}
         
     except Error as e:
@@ -63,7 +63,7 @@ def receive_message():
                     #OUT = open("outputs.txt", 'w')
                     #OUT.writelines(str(message["message"]) + '\n')
                     
-                    list_id(recipient_id, response_sent_text, ID_LIST)
+                    list_id(recipient_id, response_sent_text, ID_LIST, cursor)
                     
                                    
                 #if user sends us a GIF, photo,video, or any other non-text item
@@ -111,7 +111,7 @@ def send_message(recipient_id, response):
     bot.send_text_message(recipient_id, response)
     return "success"
 
-def list_id(recipient_id, response_sent_text, id_list):
+def list_id(recipient_id, response_sent_text, id_list, cursor):
 
     if(recipient_id not in id_list):
                         
@@ -120,7 +120,7 @@ def list_id(recipient_id, response_sent_text, id_list):
         else:
             #ID_LIST[recipient_id] = {'horario' : datetime.now()}
             comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, {1})".format(recipient_id, datetime.now())
-            CURSOR.execute(comando_update)
+            cursor.execute(comando_update)
             send_message(recipient_id, response_sent_text[0])
                         
     else:
@@ -131,15 +131,15 @@ def list_id(recipient_id, response_sent_text, id_list):
                 send_message(recipient_id, response_sent_text[0])
                 #ID_LIST[recipient_id] = {'horario' : datetime.now()}
                 comando_update = "UPDATE excluidos SET horario_excluido={0} WHERE id_excluido={1}".format(datetime.now(), recipient_id)
-                CURSOR.execute(comando_update)
+                cursor.execute(comando_update)
                                 
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
             
     # Efetua um commit no banco de dados.
-    CON.commit()
+    con.commit()
     # Finaliza a conexão
-    CON.close()
+    con.close()
     
     return ID_LIST
 
