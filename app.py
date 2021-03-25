@@ -119,7 +119,7 @@ def list_id(recipient_id, response_sent_text, id_list):
             send_message(recipient_id, response_sent_text[0])
         else:
             #ID_LIST[recipient_id] = {'horario' : datetime.now()}
-            comando_update = "UPDATE excluidos SET horario_excluido={0} WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+            comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, {1})".format(recipient_id, datetime.now())
             cursor.execute(comando_update)
             send_message(recipient_id, response_sent_text[0])
                         
