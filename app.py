@@ -144,7 +144,7 @@ def list_id(recipient_id, response_sent_text, id_list, bd):
     # Finaliza a conexão
     con.close()
     
-    return ID_LIST
+    return id_list
 
 if __name__ == "__main__":
     app.run()
