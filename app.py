@@ -32,7 +32,7 @@ def receive_message():
         CURSOR.execute("SELECT * FROM excluidos")
         
         ID_LIST = {}
-        for linha in cursor.fetchall():
+        for linha in CURSOR.fetchall():
             ID_LIST['{}'.format(linha[0])] = {"horario":linha[1]}
         
     except Error as e:
