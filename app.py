@@ -1,5 +1,7 @@
   
 #Python libraries that we need to import for our bot
+import MySQLdb
+from MySQLdb import Error
 import random, os, csv
 import pandas as pd
 from flask import Flask, request
@@ -16,25 +18,28 @@ VERIFY_TOKEN = 'TESTINGTOKEN'
 
 HORARIO_DESLIGAMENTO = 24
 
-try:
-    excluidos = pd.read_csv("excluidos.csv")
-    
-except:
-    column = ['id', 'horario']
-    data = [['1561515165', str(datetime.now().hour)]]  
-    
-    excluidos = pd.DataFrame(columns = column)
-    excluidos.to_csv('excluidos.csv', index=False)
-    
-ID_LIST = {'id': {'horario': datetime.now()}}
-
-
 bot = Bot(ACCESS_TOKEN)
 
 
 #We will receive messages that Facebook sends our bot at this endpoint 
 @app.route("/", methods=['GET', 'POST'])
 def receive_message():
+    
+    try:
+        #excluidos = pd.read_csv("excluidos.csv")
+        con = MySQLdb.connect(host="us-cdbr-east-03.cleardb.com", user="b8cd7b592349c7", passwd="67006c83", db="heroku_0c2e37b2ea952c5")
+        cursor = con.cursor()
+        cursor.execute("SELECT * FROM excluidos")
+        
+        ID_LIST = {}
+        for linha in cursor.fetchall():
+            ID_LIST['{}'.format(linha[0])] = {"horario":linha[1]}
+        
+    except Error as e:
+        ID_LIST = {}
+        print("Erro ao acessar tabela MySQL", e)  
+    
+    
     if request.method == 'GET':
         """Before allowing people to message your bot, Facebook has implemented a verify token
         that confirms all requests that your bot receives came from Facebook.""" 
@@ -58,7 +63,7 @@ def receive_message():
                     #OUT = open("outputs.txt", 'w')
                     #OUT.writelines(str(message["message"]) + '\n')
                     
-                    list_id(recipient_id, response_sent_text, lista = ID_LIST)
+                    list_id(recipient_id, response_sent_text, ID_LIST)
                     
                                    
                 #if user sends us a GIF, photo,video, or any other non-text item
@@ -106,27 +111,36 @@ def send_message(recipient_id, response):
     bot.send_text_message(recipient_id, response)
     return "success"
 
-def list_id(recipient_id, response_sent_text, lista = ID_LIST):
+def list_id(recipient_id, response_sent_text, id_list):
 
-    if(recipient_id not in ID_LIST):
+    if(recipient_id not in id_list):
                         
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
         else:
-            ID_LIST[recipient_id] = {'horario' : datetime.now()}
+            #ID_LIST[recipient_id] = {'horario' : datetime.now()}
+            comando_update = "UPDATE excluidos SET horario_excluido={0} WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+            cursor.execute(comando_update)
             send_message(recipient_id, response_sent_text[0])
                         
     else:
 
-        if(ID_LIST[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
+        if(id_list[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
                             
             if(response_sent_text[1] == 2):
                 send_message(recipient_id, response_sent_text[0])
-                ID_LIST[recipient_id] = {'horario' : datetime.now()}
+                #ID_LIST[recipient_id] = {'horario' : datetime.now()}
+                comando_update = "UPDATE excluidos SET horario_excluido={0} WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+                cursor.execute(comando_update)
                                 
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
             
+    # Efetua um commit no banco de dados.
+    con.commit()
+    # Finaliza a conexão
+    con.close()
+    
     return ID_LIST
 
 if __name__ == "__main__":
