@@ -63,7 +63,7 @@ def receive_message():
                     #OUT = open("outputs.txt", 'w')
                     #OUT.writelines(str(message["message"]) + '\n')
                     
-                    list_id(recipient_id, response_sent_text, ID_LIST, cursor)
+                    list_id(recipient_id, response_sent_text, ID_LIST, con)
                     
                                    
                 #if user sends us a GIF, photo,video, or any other non-text item
@@ -111,8 +111,10 @@ def send_message(recipient_id, response):
     bot.send_text_message(recipient_id, response)
     return "success"
 
-def list_id(recipient_id, response_sent_text, id_list, cursor):
+def list_id(recipient_id, response_sent_text, id_list, bd):
 
+    cursor = bd.cursor()
+    
     if(recipient_id not in id_list):
                         
         if(response_sent_text[1] == 1):
