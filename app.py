@@ -119,7 +119,7 @@ def list_id(recipient_id, response_sent_text, id_list, cursor):
             send_message(recipient_id, response_sent_text[0])
         else:
             #ID_LIST[recipient_id] = {'horario' : datetime.now()}
-            comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, {1})".format(recipient_id, str(datetime.now()))
+            comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, '{1}')".format(recipient_id, str(datetime.now()))
             cursor.execute(comando_update)
             send_message(recipient_id, response_sent_text[0])
                         
@@ -130,7 +130,7 @@ def list_id(recipient_id, response_sent_text, id_list, cursor):
             if(response_sent_text[1] == 2):
                 send_message(recipient_id, response_sent_text[0])
                 #ID_LIST[recipient_id] = {'horario' : datetime.now()}
-                comando_update = "UPDATE excluidos SET horario_excluido={0} WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+                comando_update = "UPDATE excluidos SET horario_excluido='{0}' WHERE id_excluido={1}".format(datetime.now(), recipient_id)
                 cursor.execute(comando_update)
                                 
         if(response_sent_text[1] == 1):
