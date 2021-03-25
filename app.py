@@ -113,6 +113,7 @@ def send_message(recipient_id, response):
 
 def list_id(recipient_id, response_sent_text, id_list, bd):
 
+    con = bd
     cursor = bd.cursor()
     
     if(recipient_id not in id_list):
