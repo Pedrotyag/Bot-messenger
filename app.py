@@ -2,7 +2,7 @@
 #Python libraries that we need to import for our bot
 import MySQLdb
 from MySQLdb import Error
-import random, os, csv
+import random, os, csv, re
 import pandas as pd
 from flask import Flask, request
 from pymessenger.bot import Bot
@@ -12,10 +12,12 @@ app = Flask(__name__)
 
 #ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
 #VERIFY_TOKEN = os.environ['VERIFY_TOKEN']
+#CLEARDB_DATABASE_URL = os.environ['CLEARDB_DATABASE_URL']
+#HORARIO_DESLIGAMENTO = os.environ['HORARIO_DESLIGAMENTO']
 
 ACCESS_TOKEN = 'EAADzIkX32oYBADPjMYhnky8mJGBSkjkMrIhnp1LJlCH87clxngeX0I0bunswYBP8gZAPWc6Unm2dSR1yULve7exKRsNI0pgZAotscdOsxObR6mEQVv55mpHbepb3qQpn0eJu83ZBVUN9fM4GvVgVflurQ0f8YccvtTTaZBvIAHa1IuZAlkCqZBCwFXOllZAk1gZD'
 VERIFY_TOKEN = 'TESTINGTOKEN'
-
+CLEARDB_DATABASE_URL = 'mysql://b8cd7b592349c7:67006c83@us-cdbr-east-03.cleardb.com/heroku_0c2e37b2ea952c5?reconnect=true'
 HORARIO_DESLIGAMENTO = 24
 
 bot = Bot(ACCESS_TOKEN)
@@ -25,9 +27,11 @@ bot = Bot(ACCESS_TOKEN)
 @app.route("/", methods=['GET', 'POST'])
 def receive_message():
     
+    host, user, passwd, db = URL_bd(CLEARDB_DATABASE_URL)
+    
     try:
-        #excluidos = pd.read_csv("excluidos.csv")
         con = MySQLdb.connect(host="us-cdbr-east-03.cleardb.com", user="b8cd7b592349c7", passwd="67006c83", db="heroku_0c2e37b2ea952c5")
+        #con = MySQLdb.connect(host="host", user="user", passwd="passwd", db="db")
         cursor = con.cursor()
         cursor.execute("SELECT * FROM excluidos")
         
@@ -63,13 +67,22 @@ def receive_message():
                     #OUT = open("outputs.txt", 'w')
                     #OUT.writelines(str(message["message"]) + '\n')
                     
-                    list_id(recipient_id, response_sent_text, ID_LIST, con)
+                    list_id(recipient_id, response_sent_text, ID_LIST, bd = con)
                     
+                    try:
+                        # Efetua um commit no banco de dados.
+                        con.commit()
+                        # Finaliza a conexão
+                        con.close()
+                    except:
+                        pass
                                    
                 #if user sends us a GIF, photo,video, or any other non-text item
                 if message['message'].get('attachments'):
-                    response_sent_nontext = get_message()
-                    send_message(recipient_id, response_sent_nontext)
+                    #response_sent_nontext = get_message()
+                    #send_message(recipient_id, response_sent_nontext)
+                    pass
+                    
     return "Message Processed"
 
 
@@ -91,6 +104,8 @@ def get_message(text):
                           'quero fazer uma reclamação': ['reclamação', 'reclamacao', 'reclamaçao', 'reclamacão']
     }
     
+    #expressoes_chaves = ['']
+    
     for expressoes in expressoes_chaves:
         for palavras_chaves in expressoes_chaves[expressoes]:
             
@@ -111,10 +126,21 @@ def send_message(recipient_id, response):
     bot.send_text_message(recipient_id, response)
     return "success"
 
-def list_id(recipient_id, response_sent_text, id_list, bd):
+def URL_bd(URL):
+    paramet = re.split('[(:/#?@]', URL)
+    
+    host = paramet[5]
+    user = paramet[3]
+    passwd = paramet[4]
+    db = paramet[6]
+    
+    return (host, user, passwd, db)
 
-    con = bd
-    cursor = bd.cursor()
+def list_id(recipient_id, response_sent_text, id_list, bd = False):
+
+    if(bd):
+        con = bd
+        cursor = bd.cursor()
     
     if(recipient_id not in id_list):
                         
@@ -128,7 +154,7 @@ def list_id(recipient_id, response_sent_text, id_list, bd):
                         
     else:
 
-        if(id_list[recipient_id]['horario'] + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
+        if(datetime.strptime(id_list[recipient_id]['horario'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
                             
             if(response_sent_text[1] == 2):
                 send_message(recipient_id, response_sent_text[0])
@@ -139,10 +165,6 @@ def list_id(recipient_id, response_sent_text, id_list, bd):
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
             
-    # Efetua um commit no banco de dados.
-    con.commit()
-    # Finaliza a conexão
-    con.close()
     
     return id_list
 
