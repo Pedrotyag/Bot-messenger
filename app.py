@@ -53,35 +53,54 @@ def receive_message():
         return verify_fb_token(token_sent)
     #if the request was not get, it must be POST and we can just proceed with sending a message back to user
     else:
-        # get whatever message a user sent the bot
-       output = request.get_json()
-       for event in output['entry']:
-          messaging = event['messaging']
-          for message in messaging:
-            if message.get('message'):
-                #Facebook Messenger ID for user so we know where to send response back to
-                recipient_id = message['sender']['id']
+        
+        output = request.get_json()
                 
-                if message['message'].get('text'):
-                    response_sent_text = get_message(str(message['message'].get('text')))
-                    #OUT = open("outputs.txt", 'w')
-                    #OUT.writelines(str(message["message"]) + '\n')
-                    
-                    list_id(recipient_id, response_sent_text, ID_LIST, bd = con)
-                    
-                    try:
-                        # Efetua um commit no banco de dados.
-                        con.commit()
-                        # Finaliza a conexão
-                        con.close()
-                    except:
-                        pass
-                                   
-                #if user sends us a GIF, photo,video, or any other non-text item
-                if message['message'].get('attachments'):
-                    #response_sent_nontext = get_message()
-                    #send_message(recipient_id, response_sent_nontext)
-                    pass
+        if('is_echo' in output['entry'][0]['messaging'][0]['message']):
+            inp = open("input.txt",'w')
+            
+            
+            echo_messenge = str(output['entry'][0]['messaging'][0]['message']['text'])
+            recipient_id = str(output['entry'][0]['messaging'][0]['recipient']['id'])
+            
+            if(get_message_itself(echo_messenge) == 1):
+                pass
+            elif(get_message_itself(echo_messenge) == 2):
+                pass
+            else:
+                comando_update = "UPDATE excluidos SET horario_excluido='{0}' WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+                cursor.execute(comando_update)
+                
+        else:
+            # get whatever message a user sent the bot
+            for event in output['entry']:
+                messaging = event['messaging']
+                for message in messaging:
+    
+                    if message.get('message'):
+                        #Facebook Messenger ID for user so we know where to send response back to
+                        recipient_id = message['sender']['id']
+                        
+                        if message['message'].get('text'):
+                            response_sent_text = get_message(str(message['message'].get('text')))
+                            #OUT = open("outputs.txt", 'w')
+                            #OUT.writelines(str(message["message"]) + '\n')
+                            
+                            list_id(recipient_id, response_sent_text, ID_LIST, bd = con)
+                            
+                            try:
+                                # Efetua um commit no banco de dados.
+                                con.commit()
+                                # Finaliza a conexão
+                                con.close()
+                            except:
+                                pass
+                                        
+                        #if user sends us a GIF, photo,video, or any other non-text item
+                        if message['message'].get('attachments'):
+                            #response_sent_nontext = get_message()
+                            #send_message(recipient_id, response_sent_nontext)
+                            pass
                     
     return "Message Processed"
 
@@ -93,13 +112,23 @@ def verify_fb_token(token_sent):
         return request.args.get("hub.challenge")
     return 'Invalid verification token'
     
+def get_message_itself(text):
 
+    caso_1 = 'Oi, tudo bem?  Eu sou Jarvis, a inteligência artificial do gabinete do Amom. Vi que você quer mandar uma demanda pra gente. É isso mesmo? Se for, pode preencher o formulário no link https://forms.gle/WDdANuUVKvf7GjwJ8, por favor? O seu protocolo vai ser gerado automaticamente depois que enviar o formulário. Geralmente alguém da equipe de gabinete responde em menos de 10 minutos :)'         
+    caso_2 =  'Oi, tudo bem? Eu sou Jarvis, a inteligência artificial do gabinete do Amom. Nós respondemos todo mundo, mas levamos um tempo, pois são muitas mensagens. Fica tranquilo, um membro da equipe vai te responder :)'   
+    
+    if(str(text) == caso_1):
+        return 1
+    elif(str(text) == caso_2):
+        return 2
+    else:
+        return False
 
-#chooses a random message to send to the user
+#Q
 def get_message(text):
     expressoes_chaves = { 'quero mandar uma demanda': ['demanda'],
                           'tenho uma denúncia': ['denúncia', 'denuncia'],
-                          'gostaria de denunciar': ['denunciar',],
+                          'gostaria de denunciar': ['denunciar'],
                           'quero mandar uma sugestão': ['sugestão', 'sugestao'],
                           'quero fazer uma reclamação': ['reclamação', 'reclamacao', 'reclamaçao', 'reclamacão']
     }
@@ -135,6 +164,10 @@ def URL_bd(URL):
     db = paramet[6]
     
     return (host, user, passwd, db)
+
+def TEST():
+    input = request.get_json()
+    return input
 
 def list_id(recipient_id, response_sent_text, id_list, bd = False):
 
