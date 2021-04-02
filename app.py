@@ -41,6 +41,7 @@ def receive_message():
         
     except Error as e:
         ID_LIST = {}
+        con = False
         print("Erro ao acessar tabela MySQL", e)  
     
     
@@ -68,8 +69,11 @@ def receive_message():
             elif(get_message_itself(echo_messenge) == 2):
                 pass
             else:
-                comando_update = "UPDATE excluidos SET horario_excluido='{0}' WHERE id_excluido={1}".format(datetime.now(), recipient_id)
-                cursor.execute(comando_update)
+                try:
+                    comando_update = "UPDATE excluidos SET horario_excluido='{0}' WHERE id_excluido={1}".format(datetime.now(), recipient_id)
+                    cursor.execute(comando_update)
+                except:
+                    ID_LIST[recipient_id] = {'horario': str(datetime.now())}
                 
         else:
             # get whatever message a user sent the bot
@@ -82,7 +86,7 @@ def receive_message():
                         recipient_id = message['sender']['id']
                         
                         if message['message'].get('text'):
-                            response_sent_text = get_message(str(message['message'].get('text')))
+                            response_sent_text = get_message(str(message['message'].get('text')), bd = con)
                             #OUT = open("outputs.txt", 'w')
                             #OUT.writelines(str(message["message"]) + '\n')
                             
@@ -124,16 +128,20 @@ def get_message_itself(text):
     else:
         return False
 
-#Q
-def get_message(text):
+
+def get_message(text, bd = False):
+    '''
     expressoes_chaves = { 'quero mandar uma demanda': ['demanda'],
                           'tenho uma denúncia': ['denúncia', 'denuncia'],
                           'gostaria de denunciar': ['denunciar'],
                           'quero mandar uma sugestão': ['sugestão', 'sugestao'],
                           'quero fazer uma reclamação': ['reclamação', 'reclamacao', 'reclamaçao', 'reclamacão']
     }
+    '''
     
-    #expressoes_chaves = ['']
+    
+    expressoes_chaves = expressoes_chaves_func(bd)
+        
     
     for expressoes in expressoes_chaves:
         for palavras_chaves in expressoes_chaves[expressoes]:
@@ -165,35 +173,46 @@ def URL_bd(URL):
     
     return (host, user, passwd, db)
 
-def TEST():
-    input = request.get_json()
-    return input
-
 def list_id(recipient_id, response_sent_text, id_list, bd = False):
 
     if(bd):
-        con = bd
         cursor = bd.cursor()
     
     if(recipient_id not in id_list):
+        print("User não está na lista")
                         
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
+            
         else:
-            #ID_LIST[recipient_id] = {'horario' : datetime.now()}
-            comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, '{1}')".format(recipient_id, str(datetime.now()))
-            cursor.execute(comando_update)
             send_message(recipient_id, response_sent_text[0])
+            
+            comando_update = "INSERT INTO excluidos (id_excluido, horario_excluido) VALUE ({0}, '{1}')".format(recipient_id, str(datetime.now()))
+            
+            try:
+                cursor.execute(comando_update)
+            except:
+                
+                ID_LIST[recipient_id] = {'horario': str(datetime.now())}
+                print("A conecção com o banco de dados deu errado!")
+                
+            
                         
     else:
-
+        print("User está na lista")
+        
         if(datetime.strptime(id_list[recipient_id]['horario'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(seconds= 3600*HORARIO_DESLIGAMENTO) < datetime.now()):
                             
             if(response_sent_text[1] == 2):
                 send_message(recipient_id, response_sent_text[0])
-                #ID_LIST[recipient_id] = {'horario' : datetime.now()}
+                
                 comando_update = "UPDATE excluidos SET horario_excluido='{0}' WHERE id_excluido={1}".format(datetime.now(), recipient_id)
-                cursor.execute(comando_update)
+                
+                try:
+                    cursor.execute(comando_update)
+                except:
+                    ID_LIST[recipient_id] = {'horario': str(datetime.now())}
+                    print("A conecção com o banco de dados deu errado!")
                                 
         if(response_sent_text[1] == 1):
             send_message(recipient_id, response_sent_text[0])
@@ -201,5 +220,43 @@ def list_id(recipient_id, response_sent_text, id_list, bd = False):
     
     return id_list
 
+def expressoes_chaves_func(bd = False):
+    if(bd):
+        try:
+            cursor = bd.cursor()
+            cursor.execute("SELECT * FROM expressoeschaves")
+
+            
+            expressoes_chaves_lista = []
+            for row in cursor.fetchall():
+                expressao_chave, variacao = row[0], row[1]
+                
+                if(expressao_chave not in expressoes_chaves_lista):
+                    expressoes_chaves_lista.append(expressao_chave)
+            
+            expressoes_chaves = {}
+            for expressao in expressoes_chaves_lista:
+                seleciona = "SELECT variacao FROM expressoeschaves WHERE expressoes_chaves ='{}'".format(expressao)
+                cursor.execute(seleciona)
+                resultado = cursor.fetchall()
+                
+                expressoes_chaves[expressao] = [x[0] for x in resultado]
+            
+            return expressoes_chaves    
+                
+            
+        except Error as e:
+            print("Erro ao acessar tabela MySQL", e)  
+    else:
+        expressoes_chaves = { 'Quero enviar uma demanda': ['quero enviar uma demanda', 'quero enviar demanda,'  'quero manda demanda', 'quero mandar uma demanda'],
+                          'Quero fazer uma reclamação': ['quero enviar uma reclamação', 'quero mandar uma reclamação'],
+                          'Quero fazer uma solicitação': ['quero enviar uma solicitação', 'quero enviar solicitação',  'quero manda solicitação', 'quero mandar uma solicitação'],
+                          'Quero fazer uma sugestão': ['quero enviar uma sugestão', 'quero enviar sugestão',  'quero manda sugestão', 'quero mandar uma sugestão'],
+                          'Quero fazer uma denúncia': ['quero enviar uma denúncia', 'quero enviar denúncia',  'quero manda denúncia', 'quero mandar uma denúncia'] 
+        }
+        return expressao_chaves
+        
+
 if __name__ == "__main__":
     app.run()
+  
